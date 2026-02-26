@@ -23,7 +23,7 @@
 
       <tbody>
         <tr v-for="user in users" :key="user._id">
-          
+
           <!-- Mode édition -->
           <template v-if="editingId === user._id">
             <td>
@@ -33,7 +33,7 @@
               <input v-model="editingUser.email" />
             </td>
             <td>
-              <button @click="updateUser(user._id)">Update</button>
+              <button @click="updateUser">Update</button>
               <button @click="cancelEdit">Cancel</button>
             </td>
           </template>
@@ -58,6 +58,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 
+// 🔹 Backend Railway
 const API_URL = "https://thursday-production.up.railway.app/users";
 
 const users = ref([]);
@@ -86,9 +87,12 @@ async function addUser() {
 
 // 🔹 DELETE user
 async function deleteUser(id) {
+  if (!id) return;
+
   await fetch(`${API_URL}/${id}`, {
     method: "DELETE"
   });
+
   fetchUsers();
 }
 
@@ -99,9 +103,11 @@ function startEdit(user) {
 }
 
 // 🔹 Update user
-async function updateUser(id) {
-  await fetch(`${API_URL}/${id}`, {
-    method: "PATCH",
+async function updateUser() {
+  if (!editingId.value) return;
+
+  await fetch(`${API_URL}/${editingId.value}`, {
+    method: "PATCH", // doit correspondre au backend
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name: editingUser.value.name,
@@ -110,6 +116,7 @@ async function updateUser(id) {
   });
 
   editingId.value = null;
+  editingUser.value = { name: "", email: "" };
   fetchUsers();
 }
 
