@@ -20,20 +20,14 @@
           <th>Actions</th>
         </tr>
       </thead>
-
       <tbody>
         <tr v-for="user in users" :key="user._id">
-
           <!-- Mode édition -->
           <template v-if="editingId === user._id">
+            <td><input v-model="editingUser.name" /></td>
+            <td><input v-model="editingUser.email" /></td>
             <td>
-              <input v-model="editingUser.name" />
-            </td>
-            <td>
-              <input v-model="editingUser.email" />
-            </td>
-            <td>
-              <button @click="updateUser">Update</button>
+              <button @click="updateUser(user._id)">Update</button>
               <button @click="cancelEdit">Cancel</button>
             </td>
           </template>
@@ -47,18 +41,15 @@
               <button @click="deleteUser(user._id)">Delete</button>
             </td>
           </template>
-
         </tr>
       </tbody>
     </table>
-
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 
-// 🔹 Backend Railway
 const API_URL = "https://thursday-production.up.railway.app/users";
 
 const users = ref([]);
@@ -69,55 +60,72 @@ const editingUser = ref({});
 
 // 🔹 GET users
 async function fetchUsers() {
-  const res = await fetch(API_URL);
-  users.value = await res.json();
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(await res.text());
+    users.value = await res.json();
+  } catch (err) {
+    console.error("Fetch users error:", err.message);
+  }
 }
 
 // 🔹 ADD user
 async function addUser() {
-  await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newUser.value)
-  });
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newUser.value)
+    });
+    if (!res.ok) throw new Error(await res.text());
 
-  newUser.value = { name: "", email: "" };
-  fetchUsers();
+    newUser.value = { name: "", email: "" };
+    fetchUsers();
+  } catch (err) {
+    console.error("Add user error:", err.message);
+  }
 }
 
 // 🔹 DELETE user
 async function deleteUser(id) {
-  if (!id) return;
+  try {
+    if (!id) throw new Error("No ID for deletion");
 
-  await fetch(`${API_URL}/${id}`, {
-    method: "DELETE"
-  });
+    const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(await res.text());
 
-  fetchUsers();
+    fetchUsers();
+  } catch (err) {
+    console.error("Delete user error:", err.message);
+  }
 }
 
 // 🔹 Start edit
 function startEdit(user) {
+  if (!user._id) return console.error("User has no _id:", user);
   editingId.value = user._id;
   editingUser.value = { ...user };
 }
 
 // 🔹 Update user
-async function updateUser() {
-  if (!editingId.value) return;
+async function updateUser(id) {
+  try {
+    if (!id) throw new Error("No ID for update");
 
-  await fetch(`${API_URL}/${editingId.value}`, {
-    method: "PATCH", // doit correspondre au backend
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: editingUser.value.name,
-      email: editingUser.value.email
-    })
-  });
+    const res = await fetch(`${API_URL}/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editingUser.value)
+    });
 
-  editingId.value = null;
-  editingUser.value = { name: "", email: "" };
-  fetchUsers();
+    if (!res.ok) throw new Error(await res.text());
+
+    editingId.value = null;
+    editingUser.value = { name: "", email: "" };
+    fetchUsers();
+  } catch (err) {
+    console.error("Update user error:", err.message);
+  }
 }
 
 // 🔹 Cancel edit
@@ -156,7 +164,8 @@ table {
   border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: left;
