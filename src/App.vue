@@ -2,7 +2,7 @@
   <div class="container">
     <h1>User Management</h1>
 
-    <!-- 🔹 Formulaire Ajout -->
+    <!-- Formulaire Ajout -->
     <form @submit.prevent="addUser" class="form">
       <input v-model="newUser.name" placeholder="Name" required />
       <input v-model="newUser.email" placeholder="Email" required />
@@ -11,7 +11,7 @@
 
     <hr />
 
-    <!-- 🔹 Tableau Users -->
+    <!-- Tableau Users -->
     <table>
       <thead>
         <tr>
@@ -50,26 +50,32 @@
 <script setup>
 import { ref, onMounted } from "vue";
 
+// Backend Railway
 const API_URL = "https://thursday-production.up.railway.app/users";
 
 const users = ref([]);
 const newUser = ref({ name: "", email: "" });
-
 const editingId = ref(null);
 const editingUser = ref({});
 
-// 🔹 GET users
+// GET all users
 async function fetchUsers() {
   try {
     const res = await fetch(API_URL);
     if (!res.ok) throw new Error(await res.text());
-    users.value = await res.json();
+    const data = await res.json();
+    // ⚡ s'assurer que _id existe
+    users.value = data.map(u => ({
+      _id: u._id,
+      name: u.name,
+      email: u.email
+    }));
   } catch (err) {
     console.error("Fetch users error:", err.message);
   }
 }
 
-// 🔹 ADD user
+// ADD user
 async function addUser() {
   try {
     const res = await fetch(API_URL, {
@@ -78,7 +84,6 @@ async function addUser() {
       body: JSON.stringify(newUser.value)
     });
     if (!res.ok) throw new Error(await res.text());
-
     newUser.value = { name: "", email: "" };
     fetchUsers();
   } catch (err) {
@@ -86,40 +91,35 @@ async function addUser() {
   }
 }
 
-// 🔹 DELETE user
+// DELETE user
 async function deleteUser(id) {
   try {
     if (!id) throw new Error("No ID for deletion");
-
     const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error(await res.text());
-
     fetchUsers();
   } catch (err) {
     console.error("Delete user error:", err.message);
   }
 }
 
-// 🔹 Start edit
+// Start edit
 function startEdit(user) {
-  if (!user._id) return console.error("User has no _id:", user);
+  if (!user._id) return console.error("User has no _id", user);
   editingId.value = user._id;
   editingUser.value = { ...user };
 }
 
-// 🔹 Update user
+// UPDATE user
 async function updateUser(id) {
   try {
     if (!id) throw new Error("No ID for update");
-
     const res = await fetch(`${API_URL}/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(editingUser.value)
     });
-
     if (!res.ok) throw new Error(await res.text());
-
     editingId.value = null;
     editingUser.value = { name: "", email: "" };
     fetchUsers();
@@ -128,11 +128,12 @@ async function updateUser(id) {
   }
 }
 
-// 🔹 Cancel edit
+// Cancel edit
 function cancelEdit() {
   editingId.value = null;
 }
 
+// On mount
 onMounted(fetchUsers);
 </script>
 
